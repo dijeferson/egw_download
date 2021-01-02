@@ -1,5 +1,8 @@
+import requests
 import os
-import urllib.request as urllib2
+import urllib
+import urllib.request as request
+from urllib.parse import urlparse
 
 import wget as wget
 from bs4 import *
@@ -10,7 +13,7 @@ def get_url_contents(url):
     contents = ""
     try:
         print("Downloading contents from '%s'" % url)
-        contents = urllib2.urlopen(url)
+        contents = request.urlopen(url)
     except:
         print("Could not open %s" % url)
 
@@ -42,22 +45,53 @@ def process(contents, root_tag="h2"):
 # download and create directory tree inside @parent_directory
 def download(author_links_list, parent_dir="Pioneers"):
     for (author, link) in author_links_list:
+        print("****> Author: %s" % author)
         path = os.path.join(parent_dir, author)
+
         try:
             os.makedirs(path, exist_ok=True)
             print("Directory '%s' created successfully" % path)
 
             try:
-                wget.download(link, path)
+                # print(link)
+                # wget.download(prepare_url(link), path)
+                download_request(link, path)
                 print("File %s downloaded successfully" % link)
-            except ConnectionError:
+            except Exception as err:
                 print("File %s downloaded failed" % link)
+                print(err.message)
                 exit(0)
 
         except OSError:
             print("Directory '%s' can not be created" % path)
         except KeyboardInterrupt:
             exit(0)
+
+
+def download_request(url, parent_dir):
+    r = requests.get(url)
+    p = urlparse(url)
+    file_path = p.path
+    filename = os.path.basename(file_path)
+    path = os.path.join(parent_dir, filename)
+
+    with open(path, 'wb') as output_file:
+        output_file.write(r.content)
+
+
+def prepare_url(url):
+    base_url = "http://www.centrowhite.org.br"
+
+    p = urlparse(url)
+    file_path = p.path
+    old_filename = os.path.basename(file_path)
+    new_filename = urllib.parse.quote(old_filename)
+    file_path = file_path.replace(old_filename, new_filename)
+    new_url = base_url + file_path
+
+    print(new_url)
+
+    return new_url
 
 
 def run_pioneers():
